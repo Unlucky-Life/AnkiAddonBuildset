@@ -74,6 +74,16 @@ action.triggered.connect(my_tool_action)
 mw.form.menuTools.addAction(action)
 ```
 
+### Using GitHub Actions to Build Your Add-on Automatically
+
+Use the GitHub Action workflow that triggers when you push a new tag (e.g., v1.0.0).
+
+To use the GitHub Action bot to run the workflow please head to your repo settings -> action ->  allow the bot to read and write.
+
+When a tag is created, the workflow will then run automatically creating your Anki Addon File (which is simply a renamed .zip archive):
+
+You can then upload this .ankiaddon file to AnkiWeb, or users can install your add-on locally by simply double-clicking the downloaded file.
+
 Notes:
 
 - Use `mw` (main window) and `mw.col` (collection) to access Anki internals when needed.
