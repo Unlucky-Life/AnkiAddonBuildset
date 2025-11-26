@@ -1,0 +1,14 @@
+{
+  "display_name": "Name Displayed of your Addon in Anki",
+  "module_name": "Name of Your the Addon Folder",
+  "repo_name": "Your Repo Name HERE",
+  "ankiweb_id": "",
+  "author": "Your Name Here",
+  "conflicts": [],
+  "targets": [
+    "anki21"
+  ],
+  "min_point_version": "",
+  "max_tested_anki_version": "",
+  "ankiweb_conflicts_with_local": false
+}
