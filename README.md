@@ -98,8 +98,6 @@ Notes:
 
 - Keep UI actions responsive: avoid blocking the main thread.
 - Test against the Anki version(s) you target; hooks and internals can change between releases.
-- Read Anki's developer docs and inspect `aqt` and `anki` packages in your local Anki installation for available APIs.
+- Read Anki's developer docs (https://addon-docs.ankiweb.net/) and inspect `aqt` and `anki` packages on the Anki GitHub Repo for documentation of hooks and more.
 
 ---
-
-If you want, I can add a minimal example addon folder inside this repo (with `__init__.py`) demonstrating the hooks above and instructions to install it locally. Want me to add that now?
