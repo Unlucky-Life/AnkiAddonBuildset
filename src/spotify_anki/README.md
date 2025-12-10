@@ -4,11 +4,17 @@ Control Spotify playback directly from the Anki reviewer with a toggleable float
 
 ## Features
 
-- **Toggleable Widget**: Show/hide a floating control widget with `Ctrl+Shift+S` or via `Tools → Toggle Spotify Widget`
-- **Playback Control**: Play, pause, skip tracks without leaving Anki
-- **Real-time Updates**: See currently playing track and artist
-- **Draggable Widget**: Position the widget anywhere on your screen
-- **Minimal UI**: Clean, Spotify-themed interface that doesn't distract from studying
+- **Toggleable Widget**: Show/hide a floating music player with `Ctrl+Shift+S` or via `Tools → Toggle Spotify Widget`
+- **Multiple Services**: Switch between Spotify and YouTube Music
+- **Full Web Player**: Complete web interface with login support - use your existing accounts!
+- **Global Keyboard Shortcuts**: Control playback from anywhere in Anki (even when widget is hidden):
+  - **Space**: Play/Pause
+  - **Shift+Right Arrow**: Next track
+  - **Shift+Left Arrow**: Previous track
+  - **Ctrl+Shift+S**: Toggle widget visibility
+- **Button Controls**: On-screen buttons for play/pause, next, and previous
+- **Draggable Widget**: Position the player anywhere on your screen
+- **Dark Theme**: Clean, dark-themed interface that matches music services
 
 ## Installation
 
@@ -21,83 +27,19 @@ Control Spotify playback directly from the Anki reviewer with a toggleable float
    - **Linux**: `~/.local/share/Anki2/addons21/`
 3. Restart Anki
 
-### Step 2: Install Python Dependencies
+### Step 2: No Setup Required!
 
-**Note:** This addon comes with `spotipy` bundled in the folder, so you may not need to install anything! If you encounter import errors, try one of these methods:
+That's it! No dependencies, no API credentials needed.
 
-#### Method 1: Using Anki's Python (Recommended)
-
-**Windows:**
-```powershell
-cd "$env:APPDATA\Anki2\addons21\spotify_anki"
-& "C:\Program Files\Anki\python.exe" -m pip install spotipy
-```
-
-**Mac/Linux:**
-```bash
-cd ~/.local/share/Anki2/addons21/spotify_anki
-/Applications/Anki.app/Contents/MacOS/python -m pip install spotipy
-```
-
-#### Method 2: Using requirements.txt
-
-**Windows:**
-```powershell
-cd "$env:APPDATA\Anki2\addons21\spotify_anki"
-& "C:\Program Files\Anki\python.exe" -m pip install -r requirements.txt
-```
-
-**Mac/Linux:**
-```bash
-cd ~/.local/share/Anki2/addons21/spotify_anki
-/Applications/Anki.app/Contents/MacOS/python -m pip install -r requirements.txt
-```
-
-#### Method 3: Verify Bundled Library
-
-The `spotipy` folder should already be in the addon directory. If it's missing, try installing directly:
-
-**Windows PowerShell:**
-```powershell
-& "C:\Program Files\Anki\python.exe" -m pip install spotipy
-```
-
-**Mac/Linux:**
-```bash
-/Applications/Anki.app/Contents/MacOS/python -m pip install spotipy
-```
-
-Or using your system Python (may not work with Anki):
-```bash
-pip install spotipy
-```
-
-### Step 3: Configure Spotify API
-
-To use this addon, you need Spotify API credentials:
-
-1. Go to [Spotify Developer Dashboard](https://developer.spotify.com/dashboard)
-2. Log in with your Spotify account
-3. Click **"Create App"**
-4. Fill in:
-   - **App name**: `Anki Spotify Control` (or any name)
-   - **App description**: `Control Spotify from Anki`
-   - **Redirect URI**: `http://localhost:8888/callback` ⚠️ **Important!**
-5. Click **"Save"**
-6. Copy your **Client ID** and **Client Secret**
-
-### Step 4: Configure the Addon
+### Step 3: Start Using!
 
 1. Open Anki
 2. Go to `Tools → Toggle Spotify Widget` (or press `Ctrl+Shift+S`)
-3. Click **"⚙ Settings"** in the widget
-4. Paste your Client ID and Client Secret
-5. Make sure Redirect URI is: `http://localhost:8888/callback`
-6. Click **"OK"**
-7. A browser window will open asking you to authorize the app
-8. Click **"Agree"** to authorize
-9. You'll be redirected to a page (may show an error - that's OK!)
-10. Go back to Anki - the widget should now show "No Active Device"
+3. The music player will appear
+4. Choose **Spotify** or **YouTube Music** from the dropdown
+5. Log in to your account in the web player
+6. Start playing music!
+7. Use keyboard shortcuts (Space, Shift+←/→) or on-screen buttons to control playback
 
 ## Usage
 
@@ -110,31 +52,70 @@ The widget will appear in the bottom-right of the reviewer screen.
 
 ### Controls
 
-- **▶/⏸ Button**: Play or pause current track
-- **⏮ Button**: Previous track
+**Keyboard Shortcuts** (work anywhere in Anki when widget is open):
+- **Space**: Play/Pause current track
+- **Shift+Right Arrow** (→): Next track
+- **Shift+Left Arrow** (←): Previous track
+
+**On-Screen Buttons**:
+- **⏯ Button**: Play or pause
 - **⏭ Button**: Next track
-- **⚙ Settings**: Configure Spotify API credentials
-- **✕ Hide**: Hide the widget (use `Ctrl+Shift+S` to show again)
+- **⏮ Button**: Previous track
+- **Service Dropdown**: Switch between Spotify and YouTube Music
+- **✕ Button**: Hide widget (press `Ctrl+Shift+S` to show again)
+
+**Menu Actions**:
+- **Tools → Toggle Spotify Widget**: Show/hide the widget
+- **Tools → Spotify Addon Settings**: Customize keyboard shortcuts and preferences
+- **Tools → Reload Spotify Addon**: Hot reload the addon without restarting Anki (useful for development)
+
+## Customizing Shortcuts
+
+You can customize all keyboard shortcuts through the settings:
+
+1. Go to `Tools → Spotify Addon Settings`
+2. Click on each shortcut field
+3. Press the key combination you want to use
+4. Click OK to save
+5. Use `Tools → Reload Spotify Addon` or restart Anki to apply changes
+
+**Available shortcuts to customize:**
+- Play/Pause (default: Space)
+- Next Track (default: Shift+Right)
+- Previous Track (default: Shift+Left)
+- Toggle Widget (default: Ctrl+Shift+S - cannot be changed in settings)
+
+**Important**: All shortcuts work **everywhere in Anki**, not just when the widget is focused. This means you can:
+- Control playback while studying (Space to play/pause, Shift+← / Shift+→ for next/previous)
+- Control playback while the widget is hidden
+- Control playback from any Anki screen (Decks, Cards, etc.)
+
+You can also set the default music service (Spotify or YouTube Music).
+
+### Switching Services
+
+1. Use the dropdown in the header to select **Spotify** or **YouTube Music**
+2. The player will reload with the selected service
+3. Log in if needed
+4. Your preference is remembered while the widget is open
+
+### Changing What Plays
+
+Just use the normal web interface:
+- **Spotify**: Search and browse playlists, albums, artists, podcasts
+- **YouTube Music**: Search for songs, create playlists, explore music
 
 ### Tips
 
-- **Start Spotify**: Make sure Spotify is open and playing on any device (phone, computer, etc.)
-- **Drag Widget**: Click and drag anywhere on the widget to reposition it
-- **Hide While Studying**: Press `Ctrl+Shift+S` to quickly hide/show the widget
-- **Works Across Devices**: Control playback on any Spotify Connect device
+- **Drag Widget**: Click and drag the header area (top bar with title) to reposition
+- **Hide While Studying**: Press `Ctrl+Shift+S` to quickly hide/show the player
+- **Keyboard Control**: Use Space and Shift+Arrow keys to control playback without touching the mouse
+- **Multiple Services**: YouTube Music works great with free accounts!
+- **Login Persistence**: Your login session is automatically saved - you won't need to log in again!
+- **Stay Logged In**: Cookies and session data are stored in the addon's `web_profile/` folder
+- **Full Features**: All normal web player features work (search, playlists, queue, etc.)
 
 ## Troubleshooting
-
-### "Not Configured" Message
-
-- Click **Settings** and enter your Spotify API credentials
-- Make sure you completed the authorization step
-
-### "No Active Device" Message
-
-- Open Spotify on your computer or phone
-- Start playing any song
-- The widget should detect the active device within a few seconds
 
 ### Widget Doesn't Appear
 
@@ -142,52 +123,104 @@ The widget will appear in the bottom-right of the reviewer screen.
 - Try pressing `Ctrl+Shift+S` again
 - Restart Anki
 
-### Import Errors
+### Player Shows Blank/White Screen
 
-- Make sure `spotipy` is installed in Anki's Python environment
-- Check the Anki console (`Tools → Add-ons → View Add-on Console`) for error messages
+- Make sure you have an internet connection
+- Check if QWebEngineView is installed (comes with modern Anki versions)
+- Try switching to YouTube Music to see if it loads
 
-### Authorization Issues
+### Keyboard Shortcuts Not Working
 
-- Make sure the Redirect URI in your Spotify app settings is **exactly**: `http://localhost:8888/callback`
-- Try deleting `.spotify_cache` file in the `spotify_anki` folder and re-authorizing
+- Make sure the widget is visible and has focus
+- Click once on the widget to give it focus
+- The shortcuts (Space, Shift+←/→) should then work
+
+### Need to Log In Again
+
+- Login data is stored in `web_profile/` folder
+- If you need to clear login data, close Anki and delete the `web_profile/` folder in the addon directory
+- Then log in again when you open the widget
+
+### Can't Hear Music
+
+**For Spotify:**
+- Spotify Web Player requires Premium for full playback
+- Free accounts only get 30-second previews
+- Make sure you're logged in to a Premium account
+
+**For YouTube Music:**
+- Works with free accounts!
+- Make sure you're logged in
+- Check your system volume
+
+### Want Full Playback Without Premium?
+
+- Use **YouTube Music** instead! Select it from the dropdown
+- YouTube Music works fully with free accounts
+- Still supports all keyboard shortcuts
 
 ## File Structure
 
 ```
 spotify_anki/
 ├── __init__.py                 # Main addon entry point
-├── spotify_controller.py       # Spotify API integration
-├── spotify_widget.py           # UI widget implementation
+├── spotify_web_widget.py       # Web-based Spotify embed widget
+├── spotify_widget.py           # API-based widget (legacy)
+├── spotify_controller.py       # Spotify API integration (optional)
+├── http_server.py             # HTTP API server (optional)
+├── hooks.py                   # Anki hooks integration
 ├── manifest.json              # Addon metadata
-├── requirements.txt           # Python dependencies
+├── requirements.txt           # Python dependencies (optional)
 ├── README.md                  # This file
-└── spotify_config.json        # Config (created after setup)
+├── HTTP_API.md               # HTTP API documentation (optional)
+└── spotipy/                   # Bundled Spotify library (optional)
 ```
 
 ## Privacy & Security
 
-- Your Spotify credentials are stored locally in `spotify_config.json`
-- The addon only requests permissions to read and control playback
-- No data is sent to any third parties
-- Authorization tokens are cached locally in `.spotify_cache`
+- Uses official Spotify and YouTube Music web players (same as their websites)
+- Login sessions are saved locally in `web_profile/` folder (cookies and local storage)
+- No credentials stored in plain text - handled securely by the web engine
+- No data sent to third parties
+- All playback happens through Spotify's/YouTube's servers
+- You can clear login data by deleting the `web_profile/` folder
 
 ## Limitations
 
-- Requires active Spotify Premium account (free accounts have limited API access)
 - Requires internet connection
 - Widget only appears in the reviewer screen (not main window or deck browser)
+- **Spotify requires Premium** for full playback (free accounts get 30-second previews)
+- **YouTube Music works with free accounts!**
+- Playback controlled through web interface and keyboard shortcuts
 
 ## Development
 
 Built using:
 - **Anki API**: `aqt.gui_hooks` for reviewer integration
-- **PyQt6**: For UI widgets
-- **Spotipy**: Python library for Spotify Web API
+- **PyQt6/QWebEngineView**: For embedded web content
+- **JavaScript Injection**: For controlling web player buttons
+
+### Hot Reload
+
+During development, you can reload the addon without restarting Anki:
+
+1. Make changes to the addon code
+2. Go to `Tools → Reload Spotify Addon`
+3. The addon will reload all modules and recreate the widget if it was visible
+4. Much faster than restarting Anki!
 
 ### Customization
 
-You can customize the widget appearance by editing the `setStyleSheet()` calls in `spotify_widget.py`.
+You can customize the default service by editing `spotify_web_widget.py`:
+```python
+self.current_service = "spotify"  # or "youtube"
+```
+
+Customize URLs:
+```python
+self.spotify_url = "https://open.spotify.com"
+self.youtube_url = "https://music.youtube.com"
+```
 
 ## License
 

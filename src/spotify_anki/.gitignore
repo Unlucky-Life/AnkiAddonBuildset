@@ -1,6 +1,8 @@
 # Ignore sensitive configuration and cache files
 spotify_config.json
 .spotify_cache
+config.json
+web_profile/
 __pycache__/
 *.pyc
 *.pyo

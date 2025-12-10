@@ -11,6 +11,7 @@ from aqt.qt import (
     Qt, QTimer, QDialog, QLineEdit, QFormLayout, QDialogButtonBox
 )
 from .spotify_controller import SpotifyController
+from .http_server import SpotifyHTTPServer
 
 
 class ConfigDialog(QDialog):
@@ -95,6 +96,10 @@ class SpotifyWidget(QWidget):
         
         self.controller = SpotifyController(config_dir)
         
+        # Start HTTP server for remote control
+        self.http_server = SpotifyHTTPServer(self.controller, port=8888)
+        self.http_server.start()
+        
         # Setup UI
         self.setup_ui()
         
@@ -126,13 +131,13 @@ class SpotifyWidget(QWidget):
         # Track info label
         self.track_label = QLabel("Not Connected")
         self.track_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.track_label.setStyleSheet("font-weight: bold; color: #1DB954;")
+        self.track_label.setStyleSheet("font-weight: bold; color: #1DB954; font-size: 14px;")
         layout.addWidget(self.track_label)
         
         # Artist info label
         self.artist_label = QLabel("")
         self.artist_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.artist_label.setStyleSheet("color: #666;")
+        self.artist_label.setStyleSheet("color: #B3B3B3; font-size: 12px;")
         layout.addWidget(self.artist_label)
         
         # Control buttons layout
@@ -181,21 +186,27 @@ class SpotifyWidget(QWidget):
         
         self.setLayout(layout)
         
-        # Style the widget
+        # Style the widget with dark mode colors
         self.setStyleSheet("""
             QWidget {
-                background-color: white;
+                background-color: #1E1E1E;
                 border: 2px solid #1DB954;
                 border-radius: 10px;
+                color: #FFFFFF;
             }
             QPushButton {
-                background-color: #f0f0f0;
-                border: 1px solid #ccc;
+                background-color: #2D2D2D;
+                border: 1px solid #3D3D3D;
                 border-radius: 5px;
                 padding: 5px;
+                color: #FFFFFF;
             }
             QPushButton:hover {
-                background-color: #e0e0e0;
+                background-color: #3D3D3D;
+                border: 1px solid #4D4D4D;
+            }
+            QPushButton:pressed {
+                background-color: #1A1A1A;
             }
         """)
         
@@ -206,6 +217,8 @@ class SpotifyWidget(QWidget):
         """Clean up when widget closes."""
         if self.update_timer:
             self.update_timer.stop()
+        if hasattr(self, 'http_server') and self.http_server:
+            self.http_server.stop()
         super().closeEvent(event)
     
     def toggle_playback(self):
