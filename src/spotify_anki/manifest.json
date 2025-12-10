@@ -1,0 +1,11 @@
+{
+  "name": "Spotify Anki",
+  "package": "spotify_anki",
+  "author": "Anki Addon Developer",
+  "version": "1.0.0",
+  "description": "Control Spotify playback from Anki reviewer with a toggleable widget",
+  "homepage": "https://github.com/Unlucky-Life/AnkiAddonBuildset",
+  "min_anki_version": "2.1.0",
+  "max_anki_version": "2.1.99",
+  "conflicts": []
+}

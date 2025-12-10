@@ -1,8 +1,0 @@
-{
-  "package": "Addon Name that will be displayed on the folder",
-  "name": "your Addon name that will be displayed",
-  "author": "your name here",
-  "version": "1.0.0",
-  "homepage": "Your Repo URL Here or Homepage",
-  "conflicts": []
-}
