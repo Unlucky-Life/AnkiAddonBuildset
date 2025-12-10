@@ -5,17 +5,12 @@ Creates a floating widget with play/pause controls that appears
 in the Anki reviewer window.
 """
 
-try:
-    from aqt import mw
-    from aqt.qt import (
-        QWidget, QPushButton, QLabel, QVBoxLayout, QHBoxLayout,
-        Qt, QTimer, QDialog, QLineEdit, QFormLayout, QDialogButtonBox
-    )
-    from .spotify_controller import SpotifyController
-except Exception as e:
-    print(f"[spotify_anki] Widget import error: {e}")
-    QWidget = object
-    mw = None
+from aqt import mw
+from aqt.qt import (
+    QWidget, QPushButton, QLabel, QVBoxLayout, QHBoxLayout,
+    Qt, QTimer, QDialog, QLineEdit, QFormLayout, QDialogButtonBox
+)
+from .spotify_controller import SpotifyController
 
 
 class ConfigDialog(QDialog):
@@ -113,11 +108,14 @@ class SpotifyWidget(QWidget):
     
     def setup_ui(self):
         """Setup the widget UI."""
-        # Make widget floating and frameless
+        # Set fixed size
+        self.setFixedSize(250, 200)
+        
+        # Make widget frameless and stay on top
         self.setWindowFlags(
-            Qt.WindowType.Tool | 
             Qt.WindowType.FramelessWindowHint | 
-            Qt.WindowType.WindowStaysOnTopHint
+            Qt.WindowType.WindowStaysOnTopHint |
+            Qt.WindowType.Widget
         )
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, False)
         
@@ -203,11 +201,12 @@ class SpotifyWidget(QWidget):
         
         # Set initial size and position
         self.setFixedSize(250, 200)
-        if parent and hasattr(parent, 'width'):
-            # Position in bottom-right corner
-            self.move(parent.width() - 270, parent.height() - 220)
-        else:
-            self.move(100, 100)
+    
+    def closeEvent(self, event):
+        """Clean up when widget closes."""
+        if self.update_timer:
+            self.update_timer.stop()
+        super().closeEvent(event)
     
     def toggle_playback(self):
         """Toggle play/pause."""
