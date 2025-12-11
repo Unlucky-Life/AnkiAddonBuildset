@@ -1,13 +1,16 @@
 name: Create Add-on Release
 
 on:
-  push:
-    tags:
-      - '*'
-  
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Enter the version tag (e.g. v1.2.3)"
+        required: true
+        type: string
+
 jobs:
   create-release:
-    name: Version ${{ github.ref_name }}
+    name: Version ${{ inputs.tag }}
     runs-on: ubuntu-latest
 
     permissions:
@@ -20,7 +23,6 @@ jobs:
         with:
           fetch-depth: 0
           fetch-tags: true
-          ref: ${{ github.ref }}
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -48,9 +50,9 @@ jobs:
           echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
           echo "module_name=$(ls src)" >> $GITHUB_OUTPUT
           echo "build_name=$(ls build/*.ankiaddon)" >> $GITHUB_OUTPUT
-          
-          # Extract version number without 'v' prefix
-          tag_name="${{ github.ref_name }}"
+
+          # Use tag from workflow_dispatch and strip leading v
+          tag_name="${{ inputs.tag }}"
           version_no_prefix=$(echo "$tag_name" | sed 's/^v//')
           echo "version_no_prefix=${version_no_prefix}" >> $GITHUB_OUTPUT
 
@@ -62,7 +64,6 @@ jobs:
           
           if [ -f "$changelog_file" ]; then
             echo "changelog_exists=true" >> $GITHUB_OUTPUT
-            # Read changelog content (escape for GitHub Actions)
             {
               echo 'changelog<<EOF'
               cat "$changelog_file"
@@ -82,14 +83,14 @@ jobs:
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_name }}
-          name: "${{ steps.vars.outputs.module_name }} v${{ github.ref_name }}"
+          tag_name: ${{ inputs.tag }}
+          name: "${{ steps.vars.outputs.module_name }} ${{ inputs.tag }}"
           body: |
             ${{ steps.get_changelog.outputs.changelog_exists == 'true' && steps.get_changelog.outputs.changelog || 'No changelog available for this release.' }}
             
             ---
             
-            **Full Changelog**: https://github.com/${{ github.repository }}/compare/${{ steps.previoustag.outputs.tag }}...${{ github.ref_name }}
+            **Full Changelog**: https://github.com/${{ github.repository }}/compare/${{ steps.previoustag.outputs.tag }}...${{ inputs.tag }}
           files: build/*.ankiaddon
           draft: true
           generate_release_notes: false
