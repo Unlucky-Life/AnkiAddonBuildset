@@ -3,7 +3,7 @@
 ## Changes Made
 
 ### 1. **Added Zoom Controls to Web Widget**
-   - **File**: [spotify_web_widget.py](src/spotify_anki/spotify_web_widget.py)
+   - **File**: [spotify_web_widget.py](src/music_player_anki/spotify_web_widget.py)
    - **Changes**:
      - Changed from fixed window size (450x600) to resizable (500x700)
      - Added `zoom_level` instance variable to track zoom state
@@ -15,7 +15,7 @@
      - Uses `setZoomFactor()` on the QWebEngineView
 
 ### 2. **Enabled External Browser Login**
-   - **File**: [spotify_controller.py](src/spotify_anki/spotify_controller.py)
+   - **File**: [spotify_controller.py](src/music_player_anki/spotify_controller.py)
    - **New Methods**:
      - `open_spotify_login_in_browser()`: Opens Spotify OAuth login URL in user's default web browser
        - Users can now authenticate without embedding a web view
@@ -25,7 +25,7 @@
    - **New Imports**: Added `webbrowser` module for opening browser links
 
 ### 3. **Added Login Button to Widget**
-   - **File**: [spotify_web_widget.py](src/spotify_anki/spotify_web_widget.py)
+   - **File**: [spotify_web_widget.py](src/music_player_anki/spotify_web_widget.py)
    - **Changes**:
      - Added green "🔐 Login" button in widget header (next to zoom controls)
      - Button opens Spotify login in the user's default web browser
@@ -34,14 +34,14 @@
      - Shows Anki tooltip message when login is initiated or if API credentials are missing
 
 ### 4. **Updated Widget Initialization**
-   - **File**: [spotify_web_widget.py](src/spotify_anki/spotify_web_widget.py)
+   - **File**: [spotify_web_widget.py](src/music_player_anki/spotify_web_widget.py)
    - **Changes**:
      - Modified `__init__()` to accept optional `controller` parameter
      - Allows sharing SpotifyController instance between widgets
      - Falls back to creating a new controller if not provided
 
 ### 5. **Updated Module Initialization**
-   - **File**: [__init__.py](src/spotify_anki/__init__.py)
+   - **File**: [__init__.py](src/music_player_anki/__init__.py)
    - **Changes**:
      - Added `get_spotify_controller()` function to manage controller lifecycle
      - Added global `spotify_controller` variable

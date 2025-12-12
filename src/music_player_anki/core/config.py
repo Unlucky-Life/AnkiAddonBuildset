@@ -54,10 +54,12 @@ class Config:
     
     # Default settings
     DEFAULTS = {
-        'shortcut_play_pause': 'Space',
-        'shortcut_next': 'Shift+Right',
-        'shortcut_previous': 'Shift+Left',
+        'shortcut_play_pause': 'Ctrl+Shift+R',
+        'shortcut_next': 'Ctrl+Shift+Right',
+        'shortcut_previous': 'Ctrl+Shift+Left',
         'shortcut_toggle': 'Ctrl+Shift+M',
+        'shortcut_volume_up': 'Ctrl+Shift+Up',
+        'shortcut_volume_down': 'Ctrl+Shift+Down',
         'default_service': 'youtube_music',
         'widget_width': 700,
         'widget_height': 550,
@@ -92,11 +94,11 @@ class Config:
             - May create the addon directory if it doesn't exist (via mkdir)
         
         Note:
-            The directory name 'spotify_anki' is retained for backward compatibility
+            The directory name 'music_player_anki' is retained for backward compatibility
             even though the addon is now called "Music Player".
         """
         if mw:
-            addon_dir = Path(mw.pm.addonFolder()) / 'spotify_anki'
+            addon_dir = Path(mw.pm.addonFolder()) / 'music_player_anki'
             addon_dir.mkdir(exist_ok=True)
             return addon_dir / 'config.json'
         return Path('config.json')

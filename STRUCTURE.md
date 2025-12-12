@@ -7,7 +7,7 @@ The codebase has been refactored into a clean, modular structure following best 
 ## Directory Structure
 
 ```
-spotify_anki/
+music_player_anki/
 ├── __init__.py              # Main entry point and addon initialization
 ├── hooks.py                 # Anki hooks integration
 ├── config.py                # Legacy config (use core/config.py instead)

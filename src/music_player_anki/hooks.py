@@ -36,7 +36,9 @@ from aqt.qt import QKeySequence, QShortcut, Qt
 from aqt.reviewer import Reviewer
 from anki.hooks import wrap
 
-_MAIN_MODULE_NAME = "spotify_anki"
+from .utils.logger import log_info, log_error, log_debug
+
+_MAIN_MODULE_NAME = "music_player_anki"
 _global_shortcuts = []
 
 
@@ -47,7 +49,7 @@ def _get_main_module():
     avoiding circular dependencies. Returns None if module not loaded.
     
     Returns:
-        module: The spotify_anki module if loaded, None otherwise.
+        module: The music_player_anki module if loaded, None otherwise.
     
     Examples:
         >>> main = _get_main_module()
@@ -81,7 +83,7 @@ def on_reviewer_show(card) -> None:
         if music_widget:
             main_module.update_widget_position()
     except Exception as e:
-        print(f"[music_player] Error in reviewer show hook: {e}")
+        log_error(f"Error in reviewer show hook: {e}", e)
         traceback.print_exc()
 
 
@@ -110,7 +112,7 @@ def cleanup_widget(state: str, old_state: str) -> None:
         if state != "review" and music_widget:
             music_widget.hide()
     except Exception as e:
-        print(f"[music_player] Error in cleanup hook: {e}")
+        log_error(f"Error in cleanup hook: {e}", e)
         traceback.print_exc()
 
 
@@ -144,73 +146,6 @@ def setup_reviewer_shortcut(toggle_callback: Callable[[], None]) -> None:
         return original
     Reviewer._shortcutKeys = wrap(Reviewer._shortcutKeys, _shortcutKeys_wrap, 'around')
 
-
-def reload_addon() -> None:
-    """Reload the addon without restarting Anki.
-    
-    Development utility that reloads all addon modules, recreates the widget,
-    and restores its visibility state. Useful for testing changes without
-    restarting Anki.
-    
-    Side Effects:
-        - Closes and destroys existing widget
-        - Reloads all addon modules using importlib.reload
-        - Recreates widget if it was visible before reload
-        - Prints status messages to console
-    
-    Note:
-        This is primarily for development. Some state may not persist across
-        reloads (e.g., web view scroll position).
-    
-    Examples:
-        >>> from spotify_anki import hooks
-        >>> hooks.reload_addon()  # Reload after code changes
-    """
-    main_module = _get_main_module()
-    if not main_module:
-        return
-    
-    try:
-        # Get the current widget
-        music_widget = getattr(main_module, 'music_widget', None)
-        
-        # Close and clean up existing widget
-        if music_widget:
-            was_visible = music_widget.isVisible()
-            music_widget.close()
-            music_widget.setParent(None)
-            main_module.music_widget = None
-            
-            # If widget was visible, recreate it
-            if was_visible and mw.state == "review":
-                main_module.show_music_widget()
-        
-        # Reload all modules
-        import importlib
-        import sys
-        
-        # Get all submodules
-        modules_to_reload = []
-        for name, module in sys.modules.items():
-            if name.startswith(_MAIN_MODULE_NAME):
-                modules_to_reload.append(name)
-        
-        # Reload in reverse order to handle dependencies
-        for module_name in reversed(modules_to_reload):
-            if module_name in sys.modules:
-                try:
-                    importlib.reload(sys.modules[module_name])
-                except Exception as e:
-                    print(f"[music_player] Error reloading {module_name}: {e}")
-        
-        print("[music_player] Addon reloaded successfully!")
-        
-    except Exception as e:
-        print(f"[music_player] Error reloading addon: {e}")
-        import traceback
-        traceback.print_exc()
-
-
 def register_hooks(setup_menu_callback: Callable[[], None]) -> None:
     """Register all Anki hooks for the addon."""
     
@@ -228,7 +163,9 @@ def setup_global_shortcuts(
     toggle_callback: Callable[[], None],
     play_pause_callback: Callable[[], None],
     next_callback: Callable[[], None],
-    prev_callback: Callable[[], None]
+    prev_callback: Callable[[], None],
+    volume_up_callback: Callable[[], None],
+    volume_down_callback: Callable[[], None]
 ) -> None:
     """
     Set up global shortcuts that work even when widget is not focused.
@@ -236,30 +173,77 @@ def setup_global_shortcuts(
     """
     from .core.config import config
     
+    log_info("Setting up global shortcuts")
+    
     # Get configured shortcuts
     toggle_seq = config.get('shortcut_toggle', 'Ctrl+Shift+M')
-    play_pause_seq = config.get('shortcut_play_pause', 'Space')
-    next_seq = config.get('shortcut_next', 'Shift+Right')
-    prev_seq = config.get('shortcut_previous', 'Shift+Left')
+    play_pause_seq = config.get('shortcut_play_pause', 'Ctrl+Shift+R')
+    next_seq = config.get('shortcut_next', 'Ctrl+Shift+Right')
+    prev_seq = config.get('shortcut_previous', 'Ctrl+Shift+Left')
+    volume_up_seq = config.get('shortcut_volume_up', 'Ctrl+Shift+Up')
+    volume_down_seq = config.get('shortcut_volume_down', 'Ctrl+Shift+Down')
+    
+    log_debug(f"Configured shortcuts:")
+    log_debug(f"  Toggle: {toggle_seq}")
+    log_debug(f"  Play/Pause: {play_pause_seq}")
+    log_debug(f"  Next: {next_seq}")
+    log_debug(f"  Previous: {prev_seq}")
+    log_debug(f"  Volume Up: {volume_up_seq}")
+    log_debug(f"  Volume Down: {volume_down_seq}")
+    
+    # Create debug wrapper to test if shortcuts are actually firing
+    def debug_wrapper(name, callback):
+        def wrapper():
+            log_debug(f"{name} shortcut triggered!")
+            try:
+                callback()
+            except Exception as e:
+                log_error(f"Error in {name} shortcut callback", e)
+                traceback.print_exc()
+        return wrapper
     
     # Create global shortcuts - these work from anywhere in Anki
     
-    # Toggle widget shortcut (Ctrl+Shift+S)
+    # Toggle widget shortcut
     toggle_shortcut = QShortcut(QKeySequence(toggle_seq), mw)
-    toggle_shortcut.activated.connect(toggle_callback)
+    toggle_shortcut.setContext(Qt.ShortcutContext.ApplicationShortcut)
+    toggle_shortcut.activated.connect(debug_wrapper("Toggle", toggle_callback))
     _global_shortcuts.append(toggle_shortcut)
     
-    # Play/Pause shortcut (only works outside of text input areas)
+    # Play/Pause shortcut
     play_pause_shortcut = QShortcut(QKeySequence(play_pause_seq), mw)
-    play_pause_shortcut.activated.connect(play_pause_callback)
+    play_pause_shortcut.setContext(Qt.ShortcutContext.ApplicationShortcut)
+    play_pause_shortcut.activated.connect(debug_wrapper("Play/Pause", play_pause_callback))
     _global_shortcuts.append(play_pause_shortcut)
     
-    # Next track shortcut (Shift+Right)
+    # Next track shortcut
     next_shortcut = QShortcut(QKeySequence(next_seq), mw)
-    next_shortcut.activated.connect(next_callback)
+    next_shortcut.setContext(Qt.ShortcutContext.ApplicationShortcut)
+    next_shortcut.activated.connect(debug_wrapper("Next", next_callback))
     _global_shortcuts.append(next_shortcut)
     
-    # Previous track shortcut (Shift+Left)
+    # Previous track shortcut
     prev_shortcut = QShortcut(QKeySequence(prev_seq), mw)
-    prev_shortcut.activated.connect(prev_callback)
+    prev_shortcut.setContext(Qt.ShortcutContext.ApplicationShortcut)
+    prev_shortcut.activated.connect(debug_wrapper("Previous", prev_callback))
     _global_shortcuts.append(prev_shortcut)
+    
+    # Volume up shortcut
+    volume_up_shortcut = QShortcut(QKeySequence(volume_up_seq), mw)
+    volume_up_shortcut.setContext(Qt.ShortcutContext.ApplicationShortcut)
+    volume_up_shortcut.activated.connect(debug_wrapper("Volume Up", volume_up_callback))
+    _global_shortcuts.append(volume_up_shortcut)
+    
+    # Volume down shortcut
+    volume_down_shortcut = QShortcut(QKeySequence(volume_down_seq), mw)
+    volume_down_shortcut.setContext(Qt.ShortcutContext.ApplicationShortcut)
+    volume_down_shortcut.activated.connect(debug_wrapper("Volume Down", volume_down_callback))
+    _global_shortcuts.append(volume_down_shortcut)
+    
+    log_info(f"Global shortcuts registered successfully:")
+    log_info(f"  Toggle widget: {toggle_seq}")
+    log_info(f"  Play/Pause: {play_pause_seq}")
+    log_info(f"  Next track: {next_seq}")
+    log_info(f"  Previous track: {prev_seq}")
+    log_info(f"  Volume Up: {volume_up_seq}")
+    log_info(f"  Volume Down: {volume_down_seq}")

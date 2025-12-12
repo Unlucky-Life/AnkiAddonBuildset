@@ -181,51 +181,205 @@ class JavaScriptInjector:
     
     @staticmethod
     def get_play_pause_js():
-        """Get JavaScript for play/pause control."""
+        """Get JavaScript for play/pause control.
+        
+        Returns JavaScript that attempts to toggle playback by finding and
+        clicking the play/pause button. Uses multiple selectors to find the
+        button across YouTube and YouTube Music.
+        
+        Returns:
+            str: JavaScript code for play/pause control.
+        
+        Examples:
+            >>> script = JavaScriptInjector.get_play_pause_js()
+            >>> web_view.page().runJavaScript(script)
+        """
         return """
             (function() {
-                var btn = document.querySelector('button[aria-label*="Play"]') ||
-                          document.querySelector('button[aria-label*="Pause"]') ||
-                          document.querySelector('.play-pause-button') ||
-                          document.querySelector('#play-pause-button');
-                if (btn) { btn.click(); return; }
-                var evt = new KeyboardEvent('keydown', {
-                    key: 'k', code: 'KeyK', keyCode: 75, which: 75, bubbles: true, cancelable: true
-                });
-                document.body.dispatchEvent(evt);
+                console.log('[Music Player] Play/Pause triggered');
+                
+                // First, try to find and control the video element directly
+                var video = document.querySelector('video');
+                if (video) {
+                    console.log('[Music Player] Found video element, paused:', video.paused);
+                    if (video.paused) {
+                        video.play().then(function() {
+                            console.log('[Music Player] Video playing');
+                        }).catch(function(err) {
+                            console.log('[Music Player] Video play error:', err);
+                        });
+                    } else {
+                        video.pause();
+                        console.log('[Music Player] Video paused');
+                    }
+                    return;
+                }
+                
+                console.log('[Music Player] No video element found, trying Space key');
+                // Fallback: Send Space key (YouTube Music's play/pause shortcut)
+                document.dispatchEvent(new KeyboardEvent('keydown', {
+                    key: ' ',
+                    code: 'Space',
+                    keyCode: 32,
+                    which: 32,
+                    bubbles: true,
+                    cancelable: true
+                }));
+                document.dispatchEvent(new KeyboardEvent('keyup', {
+                    key: ' ',
+                    code: 'Space',
+                    keyCode: 32,
+                    which: 32,
+                    bubbles: true,
+                    cancelable: true
+                }));
             })();
         """
     
     @staticmethod
     def get_next_track_js():
-        """Get JavaScript for next track control."""
+        """Get JavaScript for next track control.
+        
+        Returns JavaScript that skips to the next track using YouTube Music's
+        keyboard shortcut (Shift+N).
+        
+        Returns:
+            str: JavaScript code for next track control.
+        
+        Examples:
+            >>> script = JavaScriptInjector.get_next_track_js()
+            >>> web_view.page().runJavaScript(script)
+        """
         return """
             (function() {
-                var btn = document.querySelector('.next-button') ||
-                          document.querySelector('button[aria-label*="Next"]') ||
-                          document.querySelector('[aria-label*="Next track"]');
-                if (btn) { btn.click(); return; }
-                var evt = new KeyboardEvent('keydown', {
-                    key: 'n', code: 'KeyN', keyCode: 78, which: 78,
-                    shiftKey: true, bubbles: true, cancelable: true
-                });
-                document.body.dispatchEvent(evt);
+                console.log('[Music Player] Next track triggered');
+                document.dispatchEvent(new KeyboardEvent('keydown', {
+                    key: 'n',
+                    code: 'KeyN',
+                    keyCode: 78,
+                    which: 78,
+                    shiftKey: true,
+                    bubbles: true,
+                    cancelable: true
+                }));
+                document.dispatchEvent(new KeyboardEvent('keyup', {
+                    key: 'n',
+                    code: 'KeyN',
+                    keyCode: 78,
+                    which: 78,
+                    shiftKey: true,
+                    bubbles: true,
+                    cancelable: true
+                }));
             })();
         """
     
     @staticmethod
     def get_previous_track_js():
-        """Get JavaScript for previous track control."""
+        """Get JavaScript for previous track control.
+        
+        Returns JavaScript that skips to the previous track using YouTube Music's
+        keyboard shortcut (Shift+P).
+        
+        Returns:
+            str: JavaScript code for previous track control.
+        
+        Examples:
+            >>> script = JavaScriptInjector.get_previous_track_js()
+            >>> web_view.page().runJavaScript(script)
+        """
         return """
             (function() {
-                var btn = document.querySelector('.previous-button') ||
-                          document.querySelector('button[aria-label*="Previous"]') ||
-                          document.querySelector('[aria-label*="Previous track"]');
-                if (btn) { btn.click(); return; }
-                var evt = new KeyboardEvent('keydown', {
-                    key: 'p', code: 'KeyP', keyCode: 80, which: 80,
-                    shiftKey: true, bubbles: true, cancelable: true
-                });
-                document.body.dispatchEvent(evt);
+                console.log('[Music Player] Previous track triggered');
+                document.dispatchEvent(new KeyboardEvent('keydown', {
+                    key: 'p',
+                    code: 'KeyP',
+                    keyCode: 80,
+                    which: 80,
+                    shiftKey: true,
+                    bubbles: true,
+                    cancelable: true
+                }));
+                document.dispatchEvent(new KeyboardEvent('keyup', {
+                    key: 'p',
+                    code: 'KeyP',
+                    keyCode: 80,
+                    which: 80,
+                    shiftKey: true,
+                    bubbles: true,
+                    cancelable: true
+                }));
+            })();
+        """
+    
+    @staticmethod
+    def get_volume_up_js():
+        """Get JavaScript for increasing volume.
+        
+        Returns JavaScript that increases the video volume by 10% or uses
+        the up arrow key shortcut.
+        
+        Returns:
+            str: JavaScript code for volume up control.
+        
+        Examples:
+            >>> script = JavaScriptInjector.get_volume_up_js()
+            >>> web_view.page().runJavaScript(script)
+        """
+        return """
+            (function() {
+                console.log('[Music Player] Volume up triggered');
+                var video = document.querySelector('video');
+                if (video) {
+                    var newVolume = Math.min(1.0, video.volume + 0.1);
+                    video.volume = newVolume;
+                    console.log('[Music Player] Volume set to:', (newVolume * 100).toFixed(0) + '%');
+                    return;
+                }
+                // Fallback: Use up arrow key
+                document.dispatchEvent(new KeyboardEvent('keydown', {
+                    key: 'ArrowUp',
+                    code: 'ArrowUp',
+                    keyCode: 38,
+                    which: 38,
+                    bubbles: true,
+                    cancelable: true
+                }));
+            })();
+        """
+    
+    @staticmethod
+    def get_volume_down_js():
+        """Get JavaScript for decreasing volume.
+        
+        Returns JavaScript that decreases the video volume by 10% or uses
+        the down arrow key shortcut.
+        
+        Returns:
+            str: JavaScript code for volume down control.
+        
+        Examples:
+            >>> script = JavaScriptInjector.get_volume_down_js()
+            >>> web_view.page().runJavaScript(script)
+        """
+        return """
+            (function() {
+                console.log('[Music Player] Volume down triggered');
+                var video = document.querySelector('video');
+                if (video) {
+                    var newVolume = Math.max(0.0, video.volume - 0.1);
+                    video.volume = newVolume;
+                    console.log('[Music Player] Volume set to:', (newVolume * 100).toFixed(0) + '%');
+                    return;
+                }
+                // Fallback: Use down arrow key
+                document.dispatchEvent(new KeyboardEvent('keydown', {
+                    key: 'ArrowDown',
+                    code: 'ArrowDown',
+                    keyCode: 40,
+                    which: 40,
+                    bubbles: true,
+                    cancelable: true
+                }));
             })();
         """

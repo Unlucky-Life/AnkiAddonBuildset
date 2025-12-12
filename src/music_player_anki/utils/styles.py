@@ -165,23 +165,37 @@ class Styles:
     
     @staticmethod
     def close_button():
-        """Close button stylesheet."""
+        """Close button stylesheet with smooth transitions and modern effects.
+        
+        Styles a close button with glassmorphism effects, subtle shadows,
+        and smooth hover animations. The button uses white with transparency
+        for the default state and transitions to red on hover/press.
+        
+        Returns:
+            str: Qt stylesheet string for close button with transitions.
+        
+        Examples:
+            >>> close_btn.setStyleSheet(Styles.close_button())
+        """
         return """
             QPushButton {
-                background: rgba(61, 61, 61, 0.5);
-                border: 1px solid transparent;
-                border-radius: 6px;
-                color: #CCCCCC;
-                font-size: 18px;
-                font-weight: 600;
+                background: rgba(255, 255, 255, 0.15);
+                border: 2px solid rgba(255, 255, 255, 0.6);
+                border-radius: 10px;
+                color: #FFFFFF;
+                font-size: 24px;
+                font-weight: bold;
+                padding: 0px;
+                text-align: center;
             }
             QPushButton:hover {
-                background: rgba(231, 76, 60, 0.8);
-                border: 1px solid rgba(231, 76, 60, 0.6);
+                background: rgba(231, 76, 60, 1.0);
+                border: 2px solid #FFFFFF;
                 color: #FFFFFF;
             }
             QPushButton:pressed {
-                background: rgba(192, 57, 43, 0.9);
+                background: rgba(192, 57, 43, 1.0);
+                border: 2px solid rgba(255, 255, 255, 0.8);
             }
         """
     
@@ -237,6 +251,78 @@ class Styles:
             QPushButton:pressed {
                 background: rgba(45, 45, 45, 0.9);
                 border: 1px solid rgba(29, 185, 84, 0.8);
+            }
+        """
+    
+    @staticmethod
+    def glass_button():
+        """Glass button stylesheet for secondary controls.
+        
+        Styles buttons with glassmorphism effects - semi-transparent white
+        background with subtle borders. Used for previous/next track buttons.
+        
+        Returns:
+            str: Qt stylesheet string for glass-style buttons.
+        
+        Examples:
+            >>> prev_btn.setStyleSheet(Styles.glass_button())
+        """
+        return """
+            QPushButton {
+                background: rgba(255, 255, 255, 0.12);
+                border: 1px solid rgba(255, 255, 255, 0.28);
+                border-radius: 22px;
+                color: #FFFFFF;
+                font-size: 20px;
+                padding-left: 2px;
+                padding-right: 2px;
+                transition: 200ms;
+            }
+            QPushButton:hover {
+                background: rgba(255, 255, 255, 0.22);
+                border: 1px solid rgba(30, 215, 96, 0.55);
+            }
+            QPushButton:pressed {
+                background: rgba(30, 215, 96, 0.32);
+                border: 1px solid rgba(30, 215, 96, 0.8);
+            }
+        """
+    
+    @staticmethod
+    def play_button():
+        """Play button stylesheet with prominent white design.
+        
+        Styles the main play/pause button with a solid white background that
+        transitions to green on hover. Uses drop shadow for depth.
+        
+        Returns:
+            str: Qt stylesheet string for play/pause button.
+        
+        Examples:
+            >>> play_btn.setStyleSheet(Styles.play_button())
+        """
+        return """
+            QPushButton {
+                background: #FFFFFF;
+                border: 2px solid #FFFFFF;
+                border-radius: 28px;
+                color: #000000;
+                font-size: 26px;
+                font-weight: 600;
+                padding-bottom: 2px;
+                transition: 200ms;
+                box-shadow: 0px 4px 12px rgba(0,0,0,0.25);
+            }
+            QPushButton:hover {
+                background: #1ED760;
+                border: 2px solid #1ED760;
+                color: #000000;
+                box-shadow: 0px 6px 18px rgba(0,0,0,0.35);
+            }
+            QPushButton:pressed {
+                background: #1DB954;
+                border: 2px solid #1DB954;
+                transform: scale(0.97);
             }
         """
     

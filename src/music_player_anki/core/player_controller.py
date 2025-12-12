@@ -43,7 +43,7 @@ class PlayerController:
         
         Args:
             config_dir (str, optional): Path to the configuration directory.
-                If None, defaults to 'spotify_anki' in the Anki addon folder.
+                If None, defaults to 'music_player_anki' in the Anki addon folder.
         
         Side Effects:
             - Creates the config_dir directory if it doesn't exist
@@ -53,7 +53,7 @@ class PlayerController:
             >>> controller = PlayerController()  # Uses default path
             >>> controller = PlayerController('/custom/path')  # Custom path
         """
-        self.config_dir = config_dir or os.path.join(mw.pm.addonFolder(), 'spotify_anki')
+        self.config_dir = config_dir or os.path.join(mw.pm.addonFolder(), 'music_player_anki')
         os.makedirs(self.config_dir, exist_ok=True)
     
     def is_configured(self):

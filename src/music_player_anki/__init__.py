@@ -34,13 +34,15 @@ Note:
     The addon stores persistent cookies and cache in the Anki profile directory.
 """
 
+import os
 from typing import Optional
 from aqt import mw
-from aqt.qt import QAction
+from aqt.qt import QAction, QDialog, QVBoxLayout, QTextBrowser, QPushButton
 
 from .gui import MusicWidget, SettingsDialog
 from .core import PlayerController
 from .hooks import register_hooks, setup_reviewer_shortcut, setup_global_shortcuts
+from .utils.logger import log_info, log_error, log_debug, get_log_file_path
 
 # Addon metadata
 __version__ = "2.0.0"
@@ -63,7 +65,7 @@ def get_player_controller() -> PlayerController:
     if not player_controller:
         import os
         addon_dir = mw.pm.addonFolder()
-        config_dir = os.path.join(addon_dir, 'spotify_anki')
+        config_dir = os.path.join(addon_dir, 'music_player_anki')
         player_controller = PlayerController(config_dir)
     
     return player_controller
@@ -98,13 +100,19 @@ def show_music_widget() -> None:
     global music_widget
 
     if not music_widget:
-        controller = get_player_controller()
-        music_widget = MusicWidget(controller=controller)
-        music_widget.setParent(mw)
-        music_widget.setWindowFlags(music_widget.windowFlags())
-        update_widget_position()
-        music_widget.show()
-        music_widget.raise_()
+        log_info("Creating music widget")
+        try:
+            controller = get_player_controller()
+            music_widget = MusicWidget(controller=controller)
+            music_widget.setParent(mw)
+            music_widget.setWindowFlags(music_widget.windowFlags())
+            update_widget_position()
+            music_widget.show()
+            music_widget.raise_()
+            log_info("Music widget created and displayed successfully")
+        except Exception as e:
+            log_error("Failed to create music widget", e)
+            raise
 
 
 def hide_music_widget() -> None:
@@ -180,13 +188,12 @@ def play_pause_from_global() -> None:
     
     Toggles the playback state of the currently loaded music service. If the
     widget doesn't exist, it will be created first. This function is bound to
-    the play/pause keyboard shortcut (default: Space) and works even when the
-    widget is hidden.
+    the play/pause keyboard shortcut (default: Ctrl+Shift+Space) and works even 
+    when the widget is hidden.
     
     The function executes JavaScript in the web view to:
-        1. Find the play/pause button in the page
-        2. Click it if found
-        3. Fall back to keyboard event dispatch if button not found
+        1. Control the video element directly
+        2. Fall back to Space keyboard event if needed
     
     Note:
         The widget must be created (though not necessarily visible) for this
@@ -204,11 +211,21 @@ def play_pause_from_global() -> None:
     """
     global music_widget
     
+    log_debug("play_pause_from_global called")
+    
     if not music_widget:
+        log_debug("Creating widget for playback control")
         show_music_widget()
     
-    if music_widget:
-        music_widget.toggle_playback()
+    if music_widget and hasattr(music_widget, 'toggle_playback'):
+        log_debug("Calling toggle_playback on widget")
+        try:
+            music_widget.toggle_playback()
+            log_debug("toggle_playback executed successfully")
+        except Exception as e:
+            log_error("Error in toggle_playback", e)
+    else:
+        log_error(f"Widget state: exists={music_widget is not None}, has_method={hasattr(music_widget, 'toggle_playback') if music_widget else False}")
 
 
 def next_track_from_global() -> None:
@@ -216,13 +233,10 @@ def next_track_from_global() -> None:
     
     Skips to the next track in the current playlist or queue. If the widget
     doesn't exist, it will be created first. This function is bound to the
-    next track keyboard shortcut (default: Shift+Right) and works even when
+    next track keyboard shortcut (default: Ctrl+Shift+Right) and works even when
     the widget is hidden.
     
-    The function executes JavaScript in the web view to:
-        1. Find the next track button in the page
-        2. Click it if found
-        3. Fall back to keyboard event dispatch (Shift+N) if button not found
+    The function executes JavaScript in the web view to send Shift+N keyboard event.
     
     Note:
         The widget must be created (though not necessarily visible) for this
@@ -239,11 +253,17 @@ def next_track_from_global() -> None:
     """
     global music_widget
     
+    log_debug("next_track_from_global called")
+    
     if not music_widget:
         show_music_widget()
     
-    if music_widget:
-        music_widget.next_track()
+    if music_widget and hasattr(music_widget, 'next_track'):
+        try:
+            music_widget.next_track()
+            log_debug("next_track executed successfully")
+        except Exception as e:
+            log_error("Error in next_track", e)
 
 
 def previous_track_from_global() -> None:
@@ -251,13 +271,10 @@ def previous_track_from_global() -> None:
     
     Skips to the previous track in the current playlist or queue. If the widget
     doesn't exist, it will be created first. This function is bound to the
-    previous track keyboard shortcut (default: Shift+Left) and works even when
+    previous track keyboard shortcut (default: Ctrl+Shift+Left) and works even when
     the widget is hidden.
     
-    The function executes JavaScript in the web view to:
-        1. Find the previous track button in the page
-        2. Click it if found
-        3. Fall back to keyboard event dispatch (Shift+P) if button not found
+    The function executes JavaScript in the web view to send Shift+P keyboard event.
     
     Note:
         The widget must be created (though not necessarily visible) for this
@@ -274,11 +291,67 @@ def previous_track_from_global() -> None:
     """
     global music_widget
     
+    log_debug("previous_track_from_global called")
+    
     if not music_widget:
         show_music_widget()
     
-    if music_widget:
-        music_widget.previous_track()
+    if music_widget and hasattr(music_widget, 'previous_track'):
+        try:
+            music_widget.previous_track()
+            log_debug("previous_track executed successfully")
+        except Exception as e:
+            log_error("Error in previous_track", e)
+
+
+def volume_up_from_global() -> None:
+    """Increase volume from global shortcut.
+    
+    Increases the video volume by 10%. If the widget doesn't exist, it will
+    be created first. This function is bound to the volume up keyboard shortcut
+    (default: Ctrl+Shift+Up) and works even when the widget is hidden.
+    
+    Examples:
+        >>> volume_up_from_global()  # Increases volume by 10%
+    """
+    global music_widget
+    
+    log_debug("volume_up_from_global called")
+    
+    if not music_widget:
+        show_music_widget()
+    
+    if music_widget and hasattr(music_widget, 'volume_up'):
+        try:
+            music_widget.volume_up()
+            log_debug("volume_up executed successfully")
+        except Exception as e:
+            log_error("Error in volume_up", e)
+
+
+def volume_down_from_global() -> None:
+    """Decrease volume from global shortcut.
+    
+    Decreases the video volume by 10%. If the widget doesn't exist, it will
+    be created first. This function is bound to the volume down keyboard shortcut
+    (default: Ctrl+Shift+Down) and works even when the widget is hidden.
+    
+    Examples:
+        >>> volume_down_from_global()  # Decreases volume by 10%
+    """
+    global music_widget
+    
+    log_debug("volume_down_from_global called")
+    
+    if not music_widget:
+        show_music_widget()
+    
+    if music_widget and hasattr(music_widget, 'volume_down'):
+        try:
+            music_widget.volume_down()
+            log_debug("volume_down executed successfully")
+        except Exception as e:
+            log_error("Error in volume_down", e)
 
 
 def update_widget_position() -> None:
@@ -328,20 +401,60 @@ def update_widget_position() -> None:
     music_widget.move(x, y)
 
 
-def setup_menu() -> None:
-    """Add menu items to Anki's Tools menu.
+def show_help() -> None:
+    """Display help dialog with README content.
     
-    Creates and adds three menu actions to the Anki Tools menu:
-        1. "Toggle Music Player" - Shows/hides the widget
-        2. "Music Player Settings..." - Opens the settings dialog
-        3. "Reload Music Player Addon" - Reloads the addon code
+    Opens a modal dialog window displaying the addon's README documentation.
+    The dialog includes formatted text explaining features, keyboard shortcuts,
+    settings, and troubleshooting tips.
+    
+    The help content is loaded from the README.md file in the addon directory
+    and displayed in a read-only text browser with scrolling support.
+    """
+    dialog = QDialog(mw)
+    dialog.setWindowTitle("Music Player Anki - Help")
+    dialog.setMinimumSize(700, 600)
+    
+    layout = QVBoxLayout()
+    
+    # Create text browser for help content
+    help_browser = QTextBrowser()
+    help_browser.setOpenExternalLinks(True)
+    
+    # Load README content
+    try:
+        readme_path = os.path.join(os.path.dirname(__file__), 'README.md')
+        with open(readme_path, 'r', encoding='utf-8') as f:
+            help_text = f.read()
+        help_browser.setMarkdown(help_text)
+    except Exception as e:
+        help_browser.setPlainText(f"Error loading help content: {e}")
+    
+    layout.addWidget(help_browser)
+    
+    # Close button
+    close_btn = QPushButton("Close")
+    close_btn.clicked.connect(dialog.accept)
+    layout.addWidget(close_btn)
+    
+    dialog.setLayout(layout)
+    dialog.exec()
+
+
+def setup_menu() -> None:
+    """Add menu items to Anki's Tools menu as a submenu.
+    
+    Creates a "Music Player" submenu in the Anki Tools menu containing:
+        1. "Toggle Player" - Shows/hides the widget
+        2. "Settings..." - Opens the settings dialog
+        3. "Reload Addon" - Reloads the addon code
     
     These menu items provide an alternative to keyboard shortcuts for
     accessing addon functionality and are particularly useful for users
     who prefer mouse interaction or need to modify settings.
     
-    The menu items are added in the order listed above and appear at the
-    bottom of the Tools menu (after any existing items).
+    The submenu keeps the Tools menu organized by grouping all music player
+    related actions together under a single menu item.
     
     Note:
         This function is called automatically during addon initialization
@@ -349,30 +462,51 @@ def setup_menu() -> None:
         unless re-initializing the addon.
     
     Side Effects:
-        - Adds three QAction items to mw.form.menuTools
+        - Adds a QMenu submenu to mw.form.menuTools
+        - Creates three QAction items in the submenu
         - Connects actions to their respective callback functions
     
     Examples:
         After calling setup_menu(), users can access:
-        Tools → Toggle Music Player
-        Tools → Music Player Settings...
-        Tools → Reload Music Player Addon
+        Tools → Music Player → Toggle Player
+        Tools → Music Player → Settings...
+        Tools → Music Player → Reload Addon
     """
+    from aqt.qt import QMenu
+    
+    # Create Music Player submenu
+    music_menu = QMenu("♫ Music Player", mw)
+    
     # Toggle widget action
-    toggle_action = QAction("Toggle Music Player", mw)
+    toggle_action = QAction("Toggle Player", mw)
     toggle_action.triggered.connect(toggle_music_widget)
-    mw.form.menuTools.addAction(toggle_action)
+    music_menu.addAction(toggle_action)
     
     # Settings action
-    settings_action = QAction("Music Player Settings...", mw)
+    settings_action = QAction("Settings...", mw)
     settings_action.triggered.connect(lambda: SettingsDialog(mw).exec())
-    mw.form.menuTools.addAction(settings_action)
+    music_menu.addAction(settings_action)
     
-    # Reload addon action
-    from .hooks import reload_addon
-    reload_action = QAction("Reload Music Player Addon", mw)
-    reload_action.triggered.connect(reload_addon)
-    mw.form.menuTools.addAction(reload_action)
+    # Help action
+    help_action = QAction("Help", mw)
+    help_action.triggered.connect(show_help)
+    music_menu.addAction(help_action)
+    
+    # Add separator
+    music_menu.addSeparator()
+    
+    # Add submenu to Tools menu
+    mw.form.menuTools.addMenu(music_menu)
+    
+    # Set up global shortcuts after main window is initialized
+    setup_global_shortcuts(
+        toggle_callback=toggle_music_widget,
+        play_pause_callback=play_pause_from_global,
+        next_callback=next_track_from_global,
+        prev_callback=previous_track_from_global,
+        volume_up_callback=volume_up_from_global,
+        volume_down_callback=volume_down_from_global
+    )
 
 
 # Initialize the addon
@@ -382,14 +516,15 @@ def initialize() -> None:
     Performs all necessary setup for the addon to function correctly within
     Anki. This includes:
         1. Setting up reviewer shortcuts (toggle widget on card review)
-        2. Setting up global shortcuts (work everywhere in Anki)
-        3. Registering Anki hooks for lifecycle management
+        2. Registering Anki hooks for lifecycle management
+        3. Global shortcuts set up via main_window_did_init hook
     
     The initialization process configures:
         - Toggle widget shortcut (default: Ctrl+Shift+M)
-        - Play/pause shortcut (default: Space)
-        - Next track shortcut (default: Shift+Right)
-        - Previous track shortcut (default: Shift+Left)
+        - Play/pause shortcut (default: Ctrl+Shift+R - works globally)
+        - Next track shortcut (default: Ctrl+Shift+Right)
+        - Previous track shortcut (default: Ctrl+Shift+Left)
+        - Space key for play/pause when widget has focus
         - Reviewer show/hide hooks
         - State change hooks
         - Menu setup hook
@@ -401,6 +536,7 @@ def initialize() -> None:
     Note:
         Shortcuts can be customized via the Settings dialog. The defaults
         listed here can be overridden by user configuration.
+        Space key works for play/pause when the widget has focus.
     
     Side Effects:
         - Registers keyboard shortcuts with Anki
@@ -413,18 +549,19 @@ def initialize() -> None:
         # Addon is fully initialized and ready to use
     """
     # Set up reviewer shortcut for toggling widget
-    setup_reviewer_shortcut(toggle_music_widget)
+    log_info(f"Initializing Music Player Anki v{__version__}")
+    log_info(f"Log file: {get_log_file_path()}")
     
-    # Set up global shortcuts that work everywhere in Anki
-    setup_global_shortcuts(
-        toggle_callback=toggle_music_widget,
-        play_pause_callback=play_pause_from_global,
-        next_callback=next_track_from_global,
-        prev_callback=previous_track_from_global
-    )
-    
-    # Register all hooks
-    register_hooks(setup_menu)
+    try:
+        setup_reviewer_shortcut(toggle_music_widget)
+        
+        # Register all hooks (global shortcuts are set up in setup_menu after main window init)
+        register_hooks(setup_menu)
+        
+        log_info("Music Player Anki initialized successfully")
+    except Exception as e:
+        log_error("Failed to initialize Music Player Anki", e)
+        raise
 
 
 # Run initialization

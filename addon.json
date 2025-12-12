@@ -1,9 +1,9 @@
 {
-  "display_name": "Name Displayed of your Addon in Anki",
-  "module_name": "Name of Your the Addon Folder",
-  "repo_name": "Your Repo Name HERE",
-  "ankiweb_id": "",
-  "author": "Your Name Here",
+  "display_name": "Music Anki Player - YouTube Music & Custom Services",
+  "module_name": "music_player_anki",
+  "repo_name": "music_player_anki",
+  "ankiweb_id": "music_player_anki",
+  "author": "Unlucky-Life",
   "conflicts": [],
   "targets": [
     "anki21"

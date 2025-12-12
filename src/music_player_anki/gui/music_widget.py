@@ -48,6 +48,7 @@ from ..core.config import config
 from ..utils.constants import SERVICES, WIDGET_WIDTH, WIDGET_HEIGHT, HEADER_HEIGHT, CONTROLS_HEIGHT, PRIMARY_BUTTON_SIZE, SECONDARY_BUTTON_SIZE
 from ..utils.styles import Styles
 from ..utils.javascript import JavaScriptInjector
+from ..utils.logger import log_info, log_error, log_debug
 
 
 class MusicWidget(QWidget):
@@ -104,11 +105,17 @@ class MusicWidget(QWidget):
             >>> widget = MusicWidget(controller=my_controller, parent=mw)
         """
         super().__init__(parent)
-        self.controller = controller
-        self.current_service = config.get('default_service', 'youtube_music')
-        self.custom_urls = config.get('custom_urls', [])
-        self.drag_position = None
-        self._setup_ui()
+        log_info("Initializing Music Widget")
+        try:
+            self.controller = controller
+            self.current_service = config.get('default_service', 'youtube_music')
+            self.custom_urls = config.get('custom_urls', [])
+            self.drag_position = None
+            self._setup_ui()
+            log_info("Music Widget initialized successfully")
+        except Exception as e:
+            log_error("Failed to initialize Music Widget", e)
+            raise
     
     def _setup_ui(self):
         """Set up the user interface components.
@@ -192,7 +199,7 @@ class MusicWidget(QWidget):
         
         # Close button
         close_btn = QPushButton("✕")
-        close_btn.setFixedSize(32, 32)
+        close_btn.setFixedSize(40, 40)
         close_btn.setStyleSheet(Styles.close_button())
         close_btn.clicked.connect(self.close)
         header_layout.addWidget(close_btn)
@@ -224,21 +231,60 @@ class MusicWidget(QWidget):
         return combo
     
     def _create_web_view(self):
-        """Create the web engine view with persistent profile."""
-        # Set up persistent profile with simpler configuration
-        profile_path = os.path.join(mw.pm.addonFolder(), 'spotify_anki', 'web_profile')
-        os.makedirs(profile_path, exist_ok=True)
+        """Create the web engine view with persistent profile.
         
-        self.profile = QWebEngineProfile("MusicPlayerProfile")
-        self.profile.setPersistentStoragePath(profile_path)
-        self.profile.setPersistentCookiesPolicy(
-            QWebEngineProfile.PersistentCookiesPolicy.ForcePersistentCookies
-        )
-        # Don't set custom User-Agent - use default QtWebEngine
-        self.profile.setHttpCacheType(QWebEngineProfile.HttpCacheType.DiskHttpCache)
-        self.profile.setHttpCacheMaximumSize(100 * 1024 * 1024)  # 100MB
+        Sets up a persistent QWebEngineProfile that stores:
+            - Login cookies and sessions (so you stay logged in)
+            - Local storage data
+            - HTTP cache for faster loading
+            
+        The profile is stored in the addon folder and persists across
+        Anki restarts, so you won't need to log in again.
+        """
+        # Set up persistent profile for saving login sessions
+        try:
+            # Get addon root folder from package __init__.py location
+            import music_player_anki
+            addon_root = os.path.dirname(music_player_anki.__file__)
+            profile_path = os.path.join(addon_root, 'web_profile')
+            os.makedirs(profile_path, exist_ok=True)
+            
+            log_info(f"Addon root: {addon_root}")
+            log_info(f"Profile path: {profile_path}")
+            
+            # CRITICAL: Use a NAMED profile to avoid off-the-record mode
+            # Named profiles are persistent by default
+            self.profile = QWebEngineProfile("MusicPlayerProfile", parent=self)
+            
+            # Set paths BEFORE creating any pages
+            self.profile.setPersistentStoragePath(profile_path)
+            self.profile.setCachePath(os.path.join(profile_path, 'cache'))
+            
+            # Force persistent cookies
+            self.profile.setPersistentCookiesPolicy(
+                QWebEngineProfile.PersistentCookiesPolicy.ForcePersistentCookies
+            )
+            
+            # Configure profile settings
+            self.profile.setHttpCacheType(QWebEngineProfile.HttpCacheType.DiskHttpCache)
+            self.profile.setHttpCacheMaximumSize(100 * 1024 * 1024)  # 100MB
+            self.profile.setHttpAcceptLanguage("en-US,en;q=0.9")
+            
+            # Log profile configuration
+            log_info("Profile configured:")
+            log_info(f"  Storage path: {self.profile.persistentStoragePath()}")
+            log_info(f"  Cache path: {self.profile.cachePath()}")
+            log_info(f"  Is off-the-record: {self.profile.isOffTheRecord()}")
+            
+            if self.profile.isOffTheRecord():
+                log_error("WARNING: Profile is off-the-record - cookies will NOT be saved!")
+            else:
+                log_info("✓ Profile is persistent - cookies will be saved!")
+        except Exception as e:
+            log_error("Failed to configure web profile", e)
+            raise
         
-        # Create page without custom scripts
+        # Create page AFTER profile is fully configured
         page = QWebEnginePage(self.profile, self)
         page.loadStarted.connect(self._on_load_started)
         page.loadProgress.connect(self._on_load_progress)
@@ -248,11 +294,13 @@ class MusicWidget(QWidget):
         self.web_view = QWebEngineView()
         self.web_view.setPage(page)
         
-        # Configure only essential settings
+        # Configure settings for best compatibility
         settings = self.web_view.settings()
         settings.setAttribute(QWebEngineSettings.WebAttribute.JavascriptEnabled, True)
         settings.setAttribute(QWebEngineSettings.WebAttribute.LocalStorageEnabled, True)
         settings.setAttribute(QWebEngineSettings.WebAttribute.PlaybackRequiresUserGesture, False)
+        settings.setAttribute(QWebEngineSettings.WebAttribute.AllowRunningInsecureContent, False)
+        settings.setAttribute(QWebEngineSettings.WebAttribute.PluginsEnabled, True)
         
         # Load initial service
         url = SERVICES.get(self.current_service, SERVICES['youtube_music'])['url']
@@ -280,71 +328,21 @@ class MusicWidget(QWidget):
         # Add stretch on left
         controls_layout.addStretch()
         
-        # Shared style variables for consistency
-        glass_btn_style = """
-            QPushButton {
-                background: rgba(255, 255, 255, 0.12);
-                border: 1px solid rgba(255, 255, 255, 0.28);
-                border-radius: 22px;
-                color: #FFFFFF;
-                font-size: 20px;
-                padding-left: 2px;
-                padding-right: 2px;
-                transition: 200ms;
-            }
-            QPushButton:hover {
-                background: rgba(255, 255, 255, 0.22);
-                border: 1px solid rgba(30, 215, 96, 0.55);
-            }
-            QPushButton:pressed {
-                background: rgba(30, 215, 96, 0.32);
-                border: 1px solid rgba(30, 215, 96, 0.8);
-            }
-        """
-
-        play_btn_style = """
-            QPushButton {
-                background: #FFFFFF;
-                border: 2px solid #FFFFFF;
-                border-radius: 28px;
-                color: #000000;
-                font-size: 26px;
-                font-weight: 600;
-                padding-bottom: 2px;
-                transition: 200ms;
-                box-shadow: 0px 4px 12px rgba(0,0,0,0.25);
-            }
-            QPushButton:hover {
-                background: #1ED760;
-                border: 2px solid #1ED760;
-                color: #000000;
-                box-shadow: 0px 6px 18px rgba(0,0,0,0.35);
-            }
-            QPushButton:pressed {
-                background: #1DB954;
-                border: 2px solid #1DB954;
-                transform: scale(0.97);
-            }
-        """
-
-
-        # ------- Build controls -------
-
         # Previous button
         prev_btn = QPushButton("⏮")
         prev_btn.setFixedSize(140, 48)
         prev_btn.setToolTip("Previous")
         prev_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        prev_btn.setStyleSheet(glass_btn_style)
+        prev_btn.setStyleSheet(Styles.glass_button())
         prev_btn.clicked.connect(self.previous_track)
         controls_layout.addWidget(prev_btn)
 
         # Play / Pause button
         self.play_pause_btn = QPushButton("▶")
-        self.play_pause_btn.setFixedSize(156, 56)
+        self.play_pause_btn.setFixedSize(156, 48)
         self.play_pause_btn.setToolTip("Play/Pause")
         self.play_pause_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.play_pause_btn.setStyleSheet(play_btn_style)
+        self.play_pause_btn.setStyleSheet(Styles.glass_button())
         self.play_pause_btn.clicked.connect(self.toggle_playback)
         controls_layout.addWidget(self.play_pause_btn)
 
@@ -353,9 +351,27 @@ class MusicWidget(QWidget):
         next_btn.setFixedSize(140, 48)
         next_btn.setToolTip("Next")
         next_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        next_btn.setStyleSheet(glass_btn_style)
+        next_btn.setStyleSheet(Styles.glass_button())
         next_btn.clicked.connect(self.next_track)
         controls_layout.addWidget(next_btn)
+        
+        # Volume down button
+        vol_down_btn = QPushButton("🔉")
+        vol_down_btn.setFixedSize(48, 48)
+        vol_down_btn.setToolTip("Volume Down")
+        vol_down_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        vol_down_btn.setStyleSheet(Styles.glass_button())
+        vol_down_btn.clicked.connect(self.volume_down)
+        controls_layout.addWidget(vol_down_btn)
+        
+        # Volume up button
+        vol_up_btn = QPushButton("🔊")
+        vol_up_btn.setFixedSize(48, 48)
+        vol_up_btn.setToolTip("Volume Up")
+        vol_up_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        vol_up_btn.setStyleSheet(Styles.glass_button())
+        vol_up_btn.clicked.connect(self.volume_up)
+        controls_layout.addWidget(vol_up_btn)
 
         controls_layout.addStretch()
 
@@ -432,42 +448,77 @@ class MusicWidget(QWidget):
     
     def toggle_playback(self):
         """Toggle play/pause."""
-        if hasattr(self, 'web_view'):
-            self.web_view.page().runJavaScript(JavaScriptInjector.get_play_pause_js())
+        try:
+            if hasattr(self, 'web_view'):
+                log_debug("Executing play/pause JavaScript")
+                self.web_view.page().runJavaScript(JavaScriptInjector.get_play_pause_js())
+            else:
+                log_error("Cannot toggle playback: web_view not available")
+        except Exception as e:
+            log_error("Error toggling playback", e)
     
     def next_track(self):
         """Skip to next track."""
-        if hasattr(self, 'web_view'):
-            self.web_view.page().runJavaScript(JavaScriptInjector.get_next_track_js())
+        try:
+            if hasattr(self, 'web_view'):
+                log_debug("Executing next track JavaScript")
+                self.web_view.page().runJavaScript(JavaScriptInjector.get_next_track_js())
+            else:
+                log_error("Cannot skip to next: web_view not available")
+        except Exception as e:
+            log_error("Error skipping to next track", e)
     
     def previous_track(self):
         """Skip to previous track."""
-        if hasattr(self, 'web_view'):
-            self.web_view.page().runJavaScript(JavaScriptInjector.get_previous_track_js())
+        try:
+            if hasattr(self, 'web_view'):
+                log_debug("Executing previous track JavaScript")
+                self.web_view.page().runJavaScript(JavaScriptInjector.get_previous_track_js())
+            else:
+                log_error("Cannot skip to previous: web_view not available")
+        except Exception as e:
+            log_error("Error skipping to previous track", e)
+    
+    def volume_up(self):
+        """Increase volume."""
+        try:
+            if hasattr(self, 'web_view'):
+                log_debug("Executing volume up JavaScript")
+                self.web_view.page().runJavaScript(JavaScriptInjector.get_volume_up_js())
+            else:
+                log_error("Cannot increase volume: web_view not available")
+        except Exception as e:
+            log_error("Error increasing volume", e)
+    
+    def volume_down(self):
+        """Decrease volume."""
+        try:
+            if hasattr(self, 'web_view'):
+                log_debug("Executing volume down JavaScript")
+                self.web_view.page().runJavaScript(JavaScriptInjector.get_volume_down_js())
+            else:
+                log_error("Cannot decrease volume: web_view not available")
+        except Exception as e:
+            log_error("Error decreasing volume", e)
     
     # Event handlers
     
     def keyPressEvent(self, event):
-        """Handle keyboard shortcuts."""
-        play_pause_seq = QKeySequence(config.get('shortcut_play_pause', 'Space'))
-        next_seq = QKeySequence(config.get('shortcut_next', 'Shift+Right'))
-        prev_seq = QKeySequence(config.get('shortcut_previous', 'Shift+Left'))
+        """Handle keyboard shortcuts within the widget.
         
-        key = event.key()
-        modifiers = event.modifiers()
-        current_seq = QKeySequence(key | int(modifiers.value if hasattr(modifiers, 'value') else modifiers))
-        
-        if current_seq.matches(play_pause_seq) == QKeySequence.SequenceMatch.ExactMatch:
+        Only handles widget-specific shortcuts like Space for play/pause.
+        Global shortcuts (Ctrl+Shift+*) are handled at the application level
+        and will work even when widget doesn't have focus.
+        """
+        # Only handle Space key when widget has focus
+        if event.key() == Qt.Key.Key_Space and event.modifiers() == Qt.KeyboardModifier.NoModifier:
             self.toggle_playback()
             event.accept()
-        elif current_seq.matches(next_seq) == QKeySequence.SequenceMatch.ExactMatch:
-            self.next_track()
-            event.accept()
-        elif current_seq.matches(prev_seq) == QKeySequence.SequenceMatch.ExactMatch:
-            self.previous_track()
-            event.accept()
-        else:
-            super().keyPressEvent(event)
+            return
+        
+        # Let all other keys bubble up to global shortcuts
+        event.ignore()
+        super().keyPressEvent(event)
     
     def mousePressEvent(self, event):
         """Handle mouse press for window dragging."""
