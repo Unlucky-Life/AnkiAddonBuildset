@@ -1,7 +1,4 @@
 """
-Simple HTTP server for Spotify playback control.
-Runs on localhost:8888 to handle play/pause/skip commands.
-"""
 
 import json
 import threading
@@ -21,46 +18,32 @@ except ImportError:
 
 
 class SpotifyServerHandler(BaseHTTPRequestHandler):
-    """HTTP request handler for Spotify control commands."""
-    
-    # Class variable to store the Spotify controller instance
     controller = None
     
     def log_message(self, format, *args):
-        """Override to suppress default logging."""
-        pass  # Silent logging, can enable for debugging
+        pass
     
     def do_GET(self):
-        """Handle GET requests."""
         parsed_path = urlparse(self.path)
         path = parsed_path.path
         
-        # Handle OAuth callback
         if path == '/callback':
             self.handle_oauth_callback(parsed_path.query)
             return
-        
-        # Handle status request
         if path == '/status':
             self.handle_status()
             return
-        
-        # Handle current track info
         if path == '/current':
             self.handle_current_track()
             return
         
-        # Default response
         self.send_response(404)
         self.end_headers()
         self.wfile.write(b'Not Found')
     
     def do_POST(self):
-        """Handle POST requests for playback control."""
         parsed_path = urlparse(self.path)
         path = parsed_path.path
-        
-        # Read request body
         content_length = int(self.headers.get('Content-Length', 0))
         body = self.rfile.read(content_length) if content_length > 0 else b''
         
@@ -94,7 +77,6 @@ class SpotifyServerHandler(BaseHTTPRequestHandler):
         self.wfile.write(json.dumps(response).encode())
     
     def handle_oauth_callback(self, query):
-        """Handle OAuth callback from Spotify."""
         self.send_response(200)
         self.send_header('Content-Type', 'text/html')
         self.end_headers()
