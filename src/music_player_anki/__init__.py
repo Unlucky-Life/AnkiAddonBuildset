@@ -472,32 +472,81 @@ def setup_menu() -> None:
         Tools → Music Player → Settings...
         Tools → Music Player → Reload Addon
     """
-    from aqt.qt import QMenu
-    
+    from aqt.qt import QMenu, QIcon
+
     # Create Music Player submenu
     music_menu = QMenu("♫ Music Player", mw)
-    
+
     # Toggle widget action
     toggle_action = QAction("Toggle Player", mw)
     toggle_action.triggered.connect(toggle_music_widget)
     music_menu.addAction(toggle_action)
-    
+
     # Settings action
     settings_action = QAction("Settings...", mw)
     settings_action.triggered.connect(lambda: SettingsDialog(mw).exec())
     music_menu.addAction(settings_action)
-    
+
     # Help action
     help_action = QAction("Help", mw)
     help_action.triggered.connect(show_help)
     music_menu.addAction(help_action)
-    
+
     # Add separator
     music_menu.addSeparator()
-    
+
     # Add submenu to Tools menu
     mw.form.menuTools.addMenu(music_menu)
-    
+
+    # --- Toolbar Button Addition ---
+    # Add a toolbar button with a music note icon to toggle the music widget
+    toolbar_action = QAction("Music Player", mw)
+    # Use a Unicode music note as the icon (fallback if no icon file)
+    # If you want to use a custom icon file, place it in the addon folder and use QIcon(path)
+    toolbar_action.setText("♫")
+    toolbar_action.setToolTip("Toggle Music Player")
+    toolbar_action.triggered.connect(toggle_music_widget)
+    # Insert the button into the main window's toolbar.
+    # Different Anki versions expose different toolbar objects, so try a
+    # few approaches and fall back to adding a QToolButton widget.
+    try:
+        added = False
+        tb = getattr(mw, 'toolbar', None)
+        if tb is not None:
+            if hasattr(tb, 'addAction'):
+                tb.addAction(toolbar_action)
+                added = True
+            elif hasattr(tb, 'addWidget'):
+                tb.addWidget(toolbar_action)
+                added = True
+
+        if not added and hasattr(mw, 'form'):
+            tb2 = getattr(mw.form, 'toolBar', None) or getattr(mw.form, 'toolbar', None)
+            if tb2 is not None and hasattr(tb2, 'addAction'):
+                tb2.addAction(toolbar_action)
+                added = True
+
+        # Final fallback: create a QToolButton and add as a widget where possible
+        if not added:
+            from aqt.qt import QToolButton
+            btn = QToolButton(mw)
+            btn.setText("♫")
+            btn.setToolTip("Toggle Music Player")
+            btn.clicked.connect(toggle_music_widget)
+            # Try adding the button to available toolbar/container
+            if tb is not None and hasattr(tb, 'addWidget'):
+                tb.addWidget(btn)
+                added = True
+            elif hasattr(mw, 'form') and getattr(mw.form, 'toolBar', None) is not None:
+                mw.form.toolBar.addWidget(btn)
+                added = True
+            else:
+                # As a last resort, add the action to the Tools menu (already present)
+                log_info("Toolbar not found; toolbar button not added, action remains in Tools menu")
+    except Exception as e:
+        log_error("Failed to add toolbar action", e)
+    # --- End Toolbar Button Addition ---
+
     # Set up global shortcuts after main window is initialized
     setup_global_shortcuts(
         toggle_callback=toggle_music_widget,
@@ -507,6 +556,38 @@ def setup_menu() -> None:
         volume_up_callback=volume_up_from_global,
         volume_down_callback=volume_down_from_global
     )
+
+
+# Top toolbar integration for Anki's newer top toolbar system
+# Uses gui_hooks.top_toolbar_did_init_links to inject a clickable link
+# into the top toolbar that calls `toggle_music_widget` via pycmd.
+try:
+    from aqt import gui_hooks
+
+    def _add_music_top_toolbar(links: list, toolbar) -> None:
+        try:
+            cmd = "music_player_toggle"
+            # Register handler that will be called when pycmd is invoked
+            toolbar.link_handlers[cmd] = lambda: toggle_music_widget()
+
+            # Use an HTML label with a music glyph; using an <img> is an option
+            html_label = "<span style='font-size:1.1em'>♫</span>"
+
+            title_attr = 'title="Toggle Music Player"'
+            link = (
+                f"<a class=hitem tabindex=\"-1\" aria-label=\"music player\" {title_attr} "
+                f"href=# onclick=\"return pycmd('{cmd}')\">{html_label}</a>"
+            )
+
+            # Insert near the end by default
+            links.append(link)
+        except Exception:
+            pass
+
+    gui_hooks.top_toolbar_did_init_links.append(_add_music_top_toolbar)
+except Exception:
+    # gui_hooks may not be available in some environments; ignore silently
+    pass
 
 
 # Initialize the addon
